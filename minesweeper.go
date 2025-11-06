@@ -9,27 +9,29 @@ type Position struct {
 	row, col int
 }
 
-func playMinesweeper() {
-	row, col := 0, 0
+type GameLevel float64
 
-	fmt.Print("Enter row & column: ")
-	fmt.Scanf("%d %d", &row, &col)
+const (
+	Easy   GameLevel = 0.3
+	Medium GameLevel = 0.5
+	hard   GameLevel = 0.8
+)
 
-	if row != col || row <= 1 || col <= 1 {
-		fmt.Println("Please input valid board size!!")
-		return
-	}
+func Minesweeper(row, col, level int) {
+	bombCount, maxAttempt := calculateBombCountAndMaxAttempt(row, level)
 
 	bombs := make(map[Position]struct{})
-	setupBombs(row, col, bombs)
+	setupBombs(row, col, bombCount, bombs)
 
 	printInitialBoard(row, col)
 
 	rowPos, colPos := 0, 0
 	clicked := make(map[Position]struct{})
-	for attempt := 0; attempt < row; {
+
+	for attempt := 0; attempt < maxAttempt; {
 		fmt.Print("Enter input: ")
 		fmt.Scanf("%d %d", &rowPos, &colPos)
+		rowPos, colPos = rowPos-1, colPos-1
 
 		if rowPos >= row || colPos >= col {
 			fmt.Println("Please input valid value!!")
@@ -41,7 +43,7 @@ func playMinesweeper() {
 		// check if the row and column position has been inputted previously
 		_, ok := clicked[pos]
 		if ok {
-			fmt.Println("Value has not been valid!!")
+			fmt.Println("Position has been inputted previously!!")
 			continue
 		}
 
@@ -64,9 +66,26 @@ func playMinesweeper() {
 	fmt.Println("Congratulations!!")
 }
 
-func setupBombs(row, col int, bombs map[Position]struct{}) {
-	bombCount := (row * col) / 2
+func calculateBombCountAndMaxAttempt(row, level int) (bombCount, maxAttempt int) {
+	switch level {
+	case 1:
+		bombCount = int(float64(row*row) * float64(Easy))
+		maxAttempt = int(float64(row*row-bombCount) * float64(Easy))
+	case 2:
+		bombCount = int(float64(row*row) * float64(Medium))
+		maxAttempt = int(float64(row*row-bombCount) * float64(Medium))
+	case 3:
+		bombCount = int(float64(row*row) * float64(hard))
+		maxAttempt = int(float64(row*row-bombCount) * float64(hard))
+	}
 
+	if maxAttempt < 1 {
+		maxAttempt = 1
+	}
+	return
+}
+
+func setupBombs(row, col, bombCount int, bombs map[Position]struct{}) {
 	for {
 		r, c := rand.Intn(row), rand.Intn(col)
 		pos := Position{r, c}
