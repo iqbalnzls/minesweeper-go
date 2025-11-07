@@ -3,21 +3,39 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"time"
 )
 
 type Position struct {
 	row, col int
 }
 
-type GameLevel float64
+type PlayerTrack struct {
+	Name      string
+	Duration  time.Duration
+	Level     int
+	IsFailed  bool
+	BoardSize int
+}
+
+type GameLevelPercentage float64
 
 const (
-	Easy   GameLevel = 0.3
-	Medium GameLevel = 0.5
-	hard   GameLevel = 0.8
+	Easy   GameLevelPercentage = 0.3
+	Medium GameLevelPercentage = 0.5
+	hard   GameLevelPercentage = 0.8
 )
 
-func Minesweeper(row, col, level int) {
+var (
+	GameLevel = map[int]string{
+		1: "Easy",
+		2: "Medium",
+		3: "Hard",
+	}
+)
+
+func Minesweeper(row, col, level int) *PlayerTrack {
+	start := time.Now()
 	bombCount, maxAttempt := calculateBombCountAndMaxAttempt(row, level)
 
 	bombs := make(map[Position]struct{})
@@ -29,9 +47,16 @@ func Minesweeper(row, col, level int) {
 	clicked := make(map[Position]struct{})
 
 	for attempt := 0; attempt < maxAttempt; {
+		tn := time.Now()
 		fmt.Print("Enter input: ")
 		fmt.Scanf("%d %d", &rowPos, &colPos)
 		rowPos, colPos = rowPos-1, colPos-1
+
+		//validate time taken by the user for each input should not the more 10s
+		if time.Since(tn).Round(time.Second) > 10*time.Second {
+			fmt.Println("Time limit exceeded!!")
+			return &PlayerTrack{Duration: time.Since(start).Round(time.Second), Level: level, IsFailed: true, BoardSize: row}
+		}
 
 		if rowPos >= row || colPos >= col {
 			fmt.Println("Please input valid value!!")
@@ -53,7 +78,7 @@ func Minesweeper(row, col, level int) {
 			fmt.Println("BOM!!")
 			printFinalBoard(row, col, clicked, bombs)
 
-			return
+			return &PlayerTrack{Duration: time.Since(start).Round(time.Second), Level: level, IsFailed: true, BoardSize: row}
 		}
 
 		clicked[pos] = struct{}{}
@@ -64,6 +89,7 @@ func Minesweeper(row, col, level int) {
 	}
 
 	fmt.Println("Congratulations!!")
+	return &PlayerTrack{Duration: time.Since(start).Round(time.Second), Level: level, IsFailed: false, BoardSize: row}
 }
 
 func calculateBombCountAndMaxAttempt(row, level int) (bombCount, maxAttempt int) {
